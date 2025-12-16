@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rust-web-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rust-web-server
+  template:
+    metadata:
+      labels:
+        app: rust-web-server
+    spec:
+      containers:
+      - name: rust-web-server
+        image: axum-intro:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        # Add liveness and readiness probes
+        livenessProbe:
+          httpGet:
+            path: /hello
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /hello
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rust-web-server-service
+spec:
+  selector:
+    app: rust-web-server
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: ClusterIP

@@ -1,0 +1,33 @@
+# Dockerfile
+FROM rust:latest AS builder
+
+# Install musl target for static linking
+RUN rustup target add x86_64-unknown-linux-musl
+
+WORKDIR /app
+
+# Copy dependencies first for better caching
+COPY Cargo.toml Cargo.lock ./
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN cargo build --target x86_64-unknown-linux-musl --release
+
+# Copy source code
+COPY src ./src
+
+# Build the application
+RUN cargo build --target x86_64-unknown-linux-musl --release
+
+# Runtime stage
+FROM alpine:latest
+
+# Install CA certificates
+RUN apk --no-cache add ca-certificates
+
+WORKDIR /app
+
+# Copy binary from builder
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/axum-intro /app/
+
+EXPOSE 8080
+
+CMD ["./axum-intro"]
